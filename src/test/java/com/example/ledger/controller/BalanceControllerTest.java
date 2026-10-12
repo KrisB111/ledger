@@ -1,5 +1,7 @@
 package com.example.ledger.controller;
 
+import com.example.ledger.repository.LedgerRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -8,6 +10,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.YearMonth;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -15,10 +19,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class BalanceControllerTest {
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private LedgerRepository ledgerRepository;
+
+    @BeforeEach
+    void setUp() {
+        ledgerRepository.deleteAll();
+    }
 
     @Test
     void returnsZeroBalanceForNewLedger() throws Exception {
@@ -77,4 +89,30 @@ class BalanceControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.balance").value(19.75));
             }
+
+    @Test
+    void returnsMonthlySummaryForCurrentMonth() throws Exception {
+        int year = YearMonth.now().getYear();
+        int month = YearMonth.now().getMonthValue();
+
+        mockMvc.perform(post("/api/transactions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"type\":\"DEPOSIT\",\"amount\":100.00}"))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/transactions")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"type\":\"WITHDRAWAL\",\"amount\":20.50}"))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/reports/monthly")
+                .param("year", String.valueOf(year))
+                .param("month", String.valueOf(month)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.year").value(year))
+            .andExpect(jsonPath("$.month").value(month))
+            .andExpect(jsonPath("$.income").value(100.0))
+            .andExpect(jsonPath("$.expenses").value(20.5))
+            .andExpect(jsonPath("$.net").value(79.5));
+    }
 }

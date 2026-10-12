@@ -1,6 +1,6 @@
 # Tiny Ledger
 
-A small Spring Boot REST API for an in-memory ledger.
+A small Spring Boot REST API for a ledger with transaction history, validation, persistence, and reporting.
 
 ## Requirements
 
@@ -30,7 +30,7 @@ GET http://localhost:8080/api/balance
 Example response:
 
 ```json
-{"balance":0.00,"currency":"EUR"}
+{ "balance": 0.0, "currency": "EUR" }
 ```
 
 Record a deposit or withdrawal:
@@ -50,7 +50,21 @@ Get the transaction history:
 GET http://localhost:8080/api/transactions
 ```
 
-Transactions are returned oldest first. Amounts must be positive, use at most two decimal places, and a withdrawal cannot exceed the current balance. Invalid requests return `400 Bad Request`. The ledger is stored in memory and resets when the application restarts.
+Transactions are returned oldest first. Amounts must be positive, use at most two decimal places, and a withdrawal cannot exceed the current balance. Invalid requests return `400 Bad Request`.
+
+Get a monthly summary:
+
+```http
+GET http://localhost:8080/api/reports/monthly?year=2026&month=10
+```
+
+Example response:
+
+```json
+{ "year": 2026, "month": 10, "income": 100.00, "expenses": 20.50, "net": 79.50 }
+```
+
+The ledger stores transactions in H2 and keeps them across application restarts in the development database.
 
 ## Tests
 

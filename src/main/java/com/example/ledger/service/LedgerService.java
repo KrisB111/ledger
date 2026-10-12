@@ -1,5 +1,6 @@
 package com.example.ledger.service;
 
+import com.example.ledger.dto.MonthlySummaryResponse;
 import com.example.ledger.model.LedgerTransaction;
 import com.example.ledger.model.LedgerTransactionEntity;
 import com.example.ledger.model.TransactionType;
@@ -10,6 +11,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -57,5 +60,30 @@ public class LedgerService {
         return ledgerRepository.findAll().stream()
                 .map(LedgerTransactionEntity::toDomain)
                 .toList();
+    }
+
+    public MonthlySummaryResponse getMonthlySummary(int year, int month) {
+        if (month < 1 || month > 12) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Month must be between 1 and 12.");
+        }
+
+        YearMonth targetMonth = YearMonth.of(year, month);
+        BigDecimal income = BigDecimal.ZERO;
+        BigDecimal expenses = BigDecimal.ZERO;
+
+        for (LedgerTransaction transaction : getTransactions()) {
+            YearMonth transactionMonth = YearMonth.from(transaction.createdAt().atZone(ZoneId.systemDefault()));
+            if (!transactionMonth.equals(targetMonth)) {
+                continue;
+            }
+
+            if (transaction.type() == TransactionType.DEPOSIT) {
+                income = income.add(transaction.amount());
+            } else {
+                expenses = expenses.add(transaction.amount());
+            }
+        }
+
+        return new MonthlySummaryResponse(year, month, income, expenses, income.subtract(expenses));
     }
 }
