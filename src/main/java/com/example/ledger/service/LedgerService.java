@@ -1,11 +1,12 @@
 package com.example.ledger.service;
 
 import com.example.ledger.model.LedgerTransaction;
+import com.example.ledger.model.LedgerTransactionEntity;
 import com.example.ledger.model.TransactionType;
 import com.example.ledger.repository.LedgerRepository;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -22,7 +23,7 @@ public class LedgerService {
     public BigDecimal getBalance() {
         BigDecimal balance = new BigDecimal("0.00");
 
-        for (LedgerTransaction transaction : ledgerRepository.findAll()) {
+        for (LedgerTransaction transaction : getTransactions()) {
             if (transaction.type() == TransactionType.DEPOSIT) {
                 balance = balance.add(transaction.amount());
             } else {
@@ -48,11 +49,13 @@ public class LedgerService {
         }
 
         LedgerTransaction transaction = new LedgerTransaction(type, amount.setScale(2), Instant.now());
-        ledgerRepository.save(transaction);
-        return transaction;
+        LedgerTransactionEntity saved = ledgerRepository.save(LedgerTransactionEntity.fromDomain(transaction));
+        return saved.toDomain();
     }
 
     public List<LedgerTransaction> getTransactions() {
-        return ledgerRepository.findAll();
+        return ledgerRepository.findAll().stream()
+                .map(LedgerTransactionEntity::toDomain)
+                .toList();
     }
 }

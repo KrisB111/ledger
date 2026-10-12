@@ -1,11 +1,7 @@
 package com.example.ledger.repository;
 
-import com.example.ledger.model.LedgerTransaction;
+import com.example.ledger.model.LedgerTransactionEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
-
-public interface LedgerRepository {
-    List<LedgerTransaction> findAll();
-
-    void save(LedgerTransaction transaction);
+public interface LedgerRepository extends JpaRepository<LedgerTransactionEntity, Long> {
 }
