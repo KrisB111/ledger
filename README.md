@@ -64,7 +64,7 @@ Example response:
 { "year": 2026, "month": 10, "income": 100.00, "expenses": 20.50, "net": 79.50 }
 ```
 
-The ledger stores transactions in H2 and keeps them across application restarts in the development database.
+The ledger stores transactions in an in-memory H2 database. Data remains available while the application is running and resets when it restarts.
 
 ## Tests
 
