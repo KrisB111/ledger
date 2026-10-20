@@ -2,6 +2,7 @@ package com.example.ledger.service;
 
 import com.example.ledger.dto.MonthlySummaryResponse;
 import com.example.ledger.dto.ReconciliationResponse;
+import com.example.ledger.mapper.LedgerTransactionMapper;
 import com.example.ledger.model.AccountEntity;
 import com.example.ledger.model.LedgerTransaction;
 import com.example.ledger.model.LedgerTransactionEntity;
@@ -23,10 +24,15 @@ import java.util.List;
 public class LedgerService {
     private final LedgerRepository ledgerRepository;
     private final AccountRepository accountRepository;
+    private final LedgerTransactionMapper transactionMapper;
 
-    public LedgerService(LedgerRepository ledgerRepository, AccountRepository accountRepository) {
+    public LedgerService(
+            LedgerRepository ledgerRepository,
+            AccountRepository accountRepository,
+            LedgerTransactionMapper transactionMapper) {
         this.ledgerRepository = ledgerRepository;
         this.accountRepository = accountRepository;
+        this.transactionMapper = transactionMapper;
     }
 
     public BigDecimal getBalance() {
@@ -68,8 +74,8 @@ public class LedgerService {
         account.setBalance(newBalance);
 
         LedgerTransaction transaction = new LedgerTransaction(type, transactionAmount, Instant.now());
-        LedgerTransactionEntity saved = ledgerRepository.save(LedgerTransactionEntity.fromDomain(account, transaction));
-        return saved.toDomain();
+        LedgerTransactionEntity saved = ledgerRepository.save(transactionMapper.toEntity(account, transaction));
+        return transactionMapper.toDomain(saved);
     }
 
     public List<LedgerTransaction> getTransactions() {
@@ -79,7 +85,7 @@ public class LedgerService {
     public List<LedgerTransaction> getTransactions(Long accountId) {
         requireAccount(accountId);
         return ledgerRepository.findByAccount_IdOrderByCreatedAtAsc(accountId).stream()
-                .map(LedgerTransactionEntity::toDomain)
+                .map(transactionMapper::toDomain)
                 .toList();
     }
 
@@ -104,7 +110,7 @@ public class LedgerService {
             .findByAccount_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
                 accountId, startInclusive, endExclusive);
         for (LedgerTransactionEntity entity : transactions) {
-            LedgerTransaction transaction = entity.toDomain();
+            LedgerTransaction transaction = transactionMapper.toDomain(entity);
 
             MonthlyTotals totals = switch (transaction.type()) {
                 case DEPOSIT -> new MonthlyTotals(transaction.amount(), BigDecimal.ZERO);
@@ -122,7 +128,7 @@ public class LedgerService {
         BigDecimal calculatedBalance = BigDecimal.ZERO;
 
         for (LedgerTransactionEntity entity : ledgerRepository.findByAccount_Id(accountId)) {
-            LedgerTransaction transaction = entity.toDomain();
+            LedgerTransaction transaction = transactionMapper.toDomain(entity);
             BigDecimal signedAmount = switch (transaction.type()) {
                 case DEPOSIT -> transaction.amount();
                 case WITHDRAWAL -> transaction.amount().negate();

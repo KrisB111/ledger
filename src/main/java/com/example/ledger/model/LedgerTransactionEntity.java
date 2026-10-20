@@ -50,14 +50,6 @@ public class LedgerTransactionEntity {
         this.createdAt = createdAt;
     }
 
-    public static LedgerTransactionEntity fromDomain(AccountEntity account, LedgerTransaction transaction) {
-        return new LedgerTransactionEntity(account, transaction.type(), transaction.amount(), transaction.createdAt());
-    }
-
-    public LedgerTransaction toDomain() {
-        return new LedgerTransaction(type, amount, createdAt);
-    }
-
     public Long getId() {
         return id;
     }
