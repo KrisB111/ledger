@@ -27,11 +27,11 @@ public class LedgerService {
         BigDecimal balance = new BigDecimal("0.00");
 
         for (LedgerTransaction transaction : getTransactions()) {
-            if (transaction.type() == TransactionType.DEPOSIT) {
-                balance = balance.add(transaction.amount());
-            } else {
-                balance = balance.subtract(transaction.amount());
-            }
+            BigDecimal signedAmount = switch (transaction.type()) {
+                case DEPOSIT -> transaction.amount();
+                case WITHDRAWAL -> transaction.amount().negate();
+            };
+            balance = balance.add(signedAmount);
         }
 
         return balance;
@@ -77,13 +77,17 @@ public class LedgerService {
                 continue;
             }
 
-            if (transaction.type() == TransactionType.DEPOSIT) {
-                income = income.add(transaction.amount());
-            } else {
-                expenses = expenses.add(transaction.amount());
-            }
+            MonthlyTotals totals = switch (transaction.type()) {
+                case DEPOSIT -> new MonthlyTotals(transaction.amount(), BigDecimal.ZERO);
+                case WITHDRAWAL -> new MonthlyTotals(BigDecimal.ZERO, transaction.amount());
+            };
+            income = income.add(totals.income());
+            expenses = expenses.add(totals.expenses());
         }
 
         return new MonthlySummaryResponse(year, month, income, expenses, income.subtract(expenses));
+    }
+
+    private record MonthlyTotals(BigDecimal income, BigDecimal expenses) {
     }
 }
