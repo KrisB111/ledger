@@ -68,14 +68,16 @@ public class LedgerService {
         }
 
         YearMonth targetMonth = YearMonth.of(year, month);
+        ZoneId zone = ZoneId.systemDefault();
+        Instant startInclusive = targetMonth.atDay(1).atStartOfDay(zone).toInstant();
+        Instant endExclusive = targetMonth.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant();
         BigDecimal income = BigDecimal.ZERO;
         BigDecimal expenses = BigDecimal.ZERO;
 
-        for (LedgerTransaction transaction : getTransactions()) {
-            YearMonth transactionMonth = YearMonth.from(transaction.createdAt().atZone(ZoneId.systemDefault()));
-            if (!transactionMonth.equals(targetMonth)) {
-                continue;
-            }
+        List<LedgerTransactionEntity> transactions = ledgerRepository
+                .findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(startInclusive, endExclusive);
+        for (LedgerTransactionEntity entity : transactions) {
+            LedgerTransaction transaction = entity.toDomain();
 
             MonthlyTotals totals = switch (transaction.type()) {
                 case DEPOSIT -> new MonthlyTotals(transaction.amount(), BigDecimal.ZERO);
