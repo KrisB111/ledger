@@ -7,7 +7,12 @@ import java.time.Instant;
 import java.util.List;
 
 public interface LedgerRepository extends JpaRepository<LedgerTransactionEntity, Long> {
-	List<LedgerTransactionEntity> findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+	List<LedgerTransactionEntity> findByAccount_IdOrderByCreatedAtAsc(Long accountId);
+
+	List<LedgerTransactionEntity> findByAccount_Id(Long accountId);
+
+	List<LedgerTransactionEntity> findByAccount_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+			Long accountId,
 			Instant startInclusive,
 			Instant endExclusive);
 }

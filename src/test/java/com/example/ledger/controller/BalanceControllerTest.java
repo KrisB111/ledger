@@ -1,7 +1,9 @@
 package com.example.ledger.controller;
 
+import com.example.ledger.model.AccountEntity;
 import com.example.ledger.model.LedgerTransactionEntity;
 import com.example.ledger.model.TransactionType;
+import com.example.ledger.repository.AccountRepository;
 import com.example.ledger.repository.LedgerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,9 +36,15 @@ class BalanceControllerTest {
     @Autowired
     private LedgerRepository ledgerRepository;
 
+    @Autowired
+    private AccountRepository accountRepository;
+
     @BeforeEach
     void setUp() {
         ledgerRepository.deleteAll();
+        AccountEntity defaultAccount = accountRepository.findFirstByOrderByIdAsc().orElseThrow();
+        defaultAccount.setBalance(new BigDecimal("0.00"));
+        accountRepository.save(defaultAccount);
     }
 
     @Test
@@ -128,18 +136,19 @@ class BalanceControllerTest {
         YearMonth month = YearMonth.of(2026, 10);
         Instant start = month.atDay(1).atStartOfDay(ZoneOffset.UTC).toInstant();
         Instant end = month.plusMonths(1).atDay(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        AccountEntity account = accountRepository.findFirstByOrderByIdAsc().orElseThrow();
 
         ledgerRepository.save(new LedgerTransactionEntity(
-                TransactionType.DEPOSIT, new BigDecimal("1.00"), start.minusSeconds(1)));
+            account, TransactionType.DEPOSIT, new BigDecimal("1.00"), start.minusSeconds(1)));
         ledgerRepository.save(new LedgerTransactionEntity(
-                TransactionType.DEPOSIT, new BigDecimal("2.00"), start));
+            account, TransactionType.DEPOSIT, new BigDecimal("2.00"), start));
         ledgerRepository.save(new LedgerTransactionEntity(
-                TransactionType.DEPOSIT, new BigDecimal("3.00"), end.minusSeconds(1)));
+            account, TransactionType.DEPOSIT, new BigDecimal("3.00"), end.minusSeconds(1)));
         ledgerRepository.save(new LedgerTransactionEntity(
-                TransactionType.DEPOSIT, new BigDecimal("4.00"), end));
+            account, TransactionType.DEPOSIT, new BigDecimal("4.00"), end));
 
         List<BigDecimal> amounts = ledgerRepository
-                .findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(start, end)
+            .findByAccount_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(account.getId(), start, end)
                 .stream()
                 .map(LedgerTransactionEntity::getAmount)
                 .toList();

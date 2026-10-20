@@ -4,9 +4,12 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
@@ -18,6 +21,10 @@ public class LedgerTransactionEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "account_id", nullable = false)
+    private AccountEntity account;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -32,14 +39,19 @@ public class LedgerTransactionEntity {
     protected LedgerTransactionEntity() {
     }
 
-    public LedgerTransactionEntity(TransactionType type, BigDecimal amount, Instant createdAt) {
+    public LedgerTransactionEntity(
+            AccountEntity account,
+            TransactionType type,
+            BigDecimal amount,
+            Instant createdAt) {
+        this.account = account;
         this.type = type;
         this.amount = amount;
         this.createdAt = createdAt;
     }
 
-    public static LedgerTransactionEntity fromDomain(LedgerTransaction transaction) {
-        return new LedgerTransactionEntity(transaction.type(), transaction.amount(), transaction.createdAt());
+    public static LedgerTransactionEntity fromDomain(AccountEntity account, LedgerTransaction transaction) {
+        return new LedgerTransactionEntity(account, transaction.type(), transaction.amount(), transaction.createdAt());
     }
 
     public LedgerTransaction toDomain() {
@@ -48,6 +60,10 @@ public class LedgerTransactionEntity {
 
     public Long getId() {
         return id;
+    }
+
+    public AccountEntity getAccount() {
+        return account;
     }
 
     public TransactionType getType() {
