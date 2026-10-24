@@ -2,6 +2,7 @@ package com.example.ledger.controller;
 
 import com.example.ledger.dto.BalanceResponse;
 import com.example.ledger.dto.MonthlySummaryResponse;
+import com.example.ledger.model.LedgerCurrency;
 import com.example.ledger.service.LedgerService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,7 +20,7 @@ public class BalanceController {
 
     @GetMapping("/balance")
     public BalanceResponse getBalance() {
-        return new BalanceResponse(ledgerService.getBalance(), "EUR");
+        return new BalanceResponse(ledgerService.getBalance(), LedgerCurrency.CODE);
     }
 
     @GetMapping("/reports/monthly")
