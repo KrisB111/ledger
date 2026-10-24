@@ -6,8 +6,9 @@ import com.example.ledger.dto.MonthlySummaryResponse;
 import com.example.ledger.dto.ReconciliationResponse;
 import com.example.ledger.dto.TransactionRequest;
 import com.example.ledger.dto.TransactionResponse;
+import com.example.ledger.mapper.TransactionResponseMapper;
 import com.example.ledger.model.AccountEntity;
-import com.example.ledger.model.LedgerTransaction;
+import com.example.ledger.model.LedgerCurrency;
 import com.example.ledger.service.LedgerService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,9 +26,13 @@ import java.util.List;
 @RequestMapping("/api/accounts")
 public class AccountController {
     private final LedgerService ledgerService;
+    private final TransactionResponseMapper transactionResponseMapper;
 
-    public AccountController(LedgerService ledgerService) {
+    public AccountController(
+            LedgerService ledgerService,
+            TransactionResponseMapper transactionResponseMapper) {
         this.ledgerService = ledgerService;
+        this.transactionResponseMapper = transactionResponseMapper;
     }
 
     @PostMapping
@@ -38,22 +43,22 @@ public class AccountController {
 
     @GetMapping("/{accountId}/balance")
     public BalanceResponse getBalance(@PathVariable Long accountId) {
-        return new BalanceResponse(ledgerService.getBalance(accountId), "EUR");
+        return new BalanceResponse(ledgerService.getBalance(accountId), LedgerCurrency.CODE);
     }
 
     @PostMapping("/{accountId}/transactions")
     public ResponseEntity<TransactionResponse> createTransaction(
             @PathVariable Long accountId,
             @RequestBody TransactionRequest request) {
-        LedgerTransaction transaction = ledgerService.recordTransaction(
-                accountId, request.type(), request.amount());
-        return ResponseEntity.status(HttpStatus.CREATED).body(toTransactionResponse(transaction));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(transactionResponseMapper.toResponse(ledgerService.recordTransaction(
+                        accountId, request.type(), request.amount())));
     }
 
     @GetMapping("/{accountId}/transactions")
     public List<TransactionResponse> getTransactions(@PathVariable Long accountId) {
         return ledgerService.getTransactions(accountId).stream()
-                .map(this::toTransactionResponse)
+                .map(transactionResponseMapper::toResponse)
                 .toList();
     }
 
@@ -71,10 +76,6 @@ public class AccountController {
     }
 
     private AccountResponse toAccountResponse(AccountEntity account) {
-        return new AccountResponse(account.getId(), account.getBalance(), "EUR");
-    }
-
-    private TransactionResponse toTransactionResponse(LedgerTransaction transaction) {
-        return new TransactionResponse(transaction.type(), transaction.amount(), transaction.createdAt());
+        return new AccountResponse(account.getId(), account.getBalance(), LedgerCurrency.CODE);
     }
 }

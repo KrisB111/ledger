@@ -68,6 +68,7 @@ class AccountLedgerTest {
         MvcResult created = mockMvc.perform(post("/api/accounts"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.balance").value(0.0))
+                .andExpect(jsonPath("$.currency").value("EUR"))
                 .andReturn();
         Number secondAccountIdValue = com.jayway.jsonpath.JsonPath
             .read(created.getResponse().getContentAsString(), "$.id");
@@ -79,13 +80,17 @@ class AccountLedgerTest {
 
         mockMvc.perform(get("/api/accounts/{accountId}/balance", accountId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.balance").value(79.5));
+                .andExpect(jsonPath("$.balance").value(79.5))
+                .andExpect(jsonPath("$.currency").value("EUR"));
         mockMvc.perform(get("/api/accounts/{accountId}/balance", secondAccountId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.balance").value(25.0));
         mockMvc.perform(get("/api/accounts/{accountId}/transactions", accountId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].type").value("DEPOSIT"))
+                .andExpect(jsonPath("$[0].amount").value(100.0))
+                .andExpect(jsonPath("$[0].createdAt").exists());
     }
 
     @Test
@@ -166,6 +171,9 @@ class AccountLedgerTest {
         mockMvc.perform(post("/api/accounts/{accountId}/transactions", targetAccountId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"type\":\"" + type + "\",\"amount\":" + amount + "}"))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.type").value(type))
+                .andExpect(jsonPath("$.amount").value(Double.parseDouble(amount)))
+                .andExpect(jsonPath("$.createdAt").exists());
     }
 }

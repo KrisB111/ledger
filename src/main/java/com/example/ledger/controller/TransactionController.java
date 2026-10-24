@@ -2,7 +2,7 @@ package com.example.ledger.controller;
 
 import com.example.ledger.dto.TransactionRequest;
 import com.example.ledger.dto.TransactionResponse;
-import com.example.ledger.model.LedgerTransaction;
+import com.example.ledger.mapper.TransactionResponseMapper;
 import com.example.ledger.service.LedgerService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,25 +18,26 @@ import java.util.List;
 @RequestMapping("/api/transactions")
 public class TransactionController {
     private final LedgerService ledgerService;
+    private final TransactionResponseMapper transactionResponseMapper;
 
-    public TransactionController(LedgerService ledgerService) {
+    public TransactionController(
+            LedgerService ledgerService,
+            TransactionResponseMapper transactionResponseMapper) {
         this.ledgerService = ledgerService;
+        this.transactionResponseMapper = transactionResponseMapper;
     }
 
     @PostMapping
     public ResponseEntity<TransactionResponse> createTransaction(@RequestBody TransactionRequest request) {
-        LedgerTransaction transaction = ledgerService.recordTransaction(request.type(), request.amount());
-        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(transaction));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(transactionResponseMapper.toResponse(
+                        ledgerService.recordTransaction(request.type(), request.amount())));
     }
 
     @GetMapping
     public List<TransactionResponse> getTransactions() {
         return ledgerService.getTransactions().stream()
-                .map(this::toResponse)
+                .map(transactionResponseMapper::toResponse)
                 .toList();
-    }
-
-    private TransactionResponse toResponse(LedgerTransaction transaction) {
-        return new TransactionResponse(transaction.type(), transaction.amount(), transaction.createdAt());
     }
 }
